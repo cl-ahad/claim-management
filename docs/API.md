@@ -120,6 +120,37 @@ Returns the updated claim. Illegal transitions return `409` naming what *is* all
 
 `204`. Only `DRAFT` claims; anything else returns `409` suggesting a void instead, which preserves the audit trail.
 
+### `GET /api/claims/{id}/denial-reasons` · any
+
+The structured reasons recorded against a claim, oldest first. A claim may have several.
+
+```json
+[
+  {
+    "id": 1, "claimId": 4,
+    "groupCode": "CO", "carcCode": "197", "rarcCode": "N130",
+    "source": "MANUAL", "note": "No prior authorization on file",
+    "createdBy": "biller", "createdAt": "2026-09-16T14:02:11Z"
+  }
+]
+```
+
+### `POST /api/claims/{id}/denial-reasons` · roles ADMIN, BILLER
+
+Records one structured denial reason. A reason is an X12 835 Claim Adjustment
+triple: a `groupCode` (`CO`/`PR`/`OA`/`PI`) and a `carcCode` are both required,
+`rarcCode` is optional. **Free text alone is not a structured reason** — a body
+with no `carcCode` returns `400`.
+
+```json
+{ "groupCode": "CO", "carcCode": "197", "rarcCode": "N130", "note": "No prior auth" }
+```
+
+`source` is optional and defaults to `MANUAL` (this endpoint keys reasons by
+hand). Automated `REMITTANCE` reasons are posted by the 835 importer; those take
+precedence for display, but a `MANUAL` row is preserved rather than overwritten,
+so the audit trail is intact. Returns `201` with a `Location` header.
+
 ---
 
 ## Reference data
