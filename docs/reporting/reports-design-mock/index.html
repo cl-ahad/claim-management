@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reports — design direction (S-4)</title>
+<!--
+  S-4 design mock for the Reports page. Loads the VERBATIM production
+  stylesheet (styles.css, copied from frontend/src/styles.css) plus the
+  additive reporting tokens (reporting.css == docs/reporting/reports-tokens.css).
+  Open this file, use the State selector and Toggle theme button, and
+  capture five states x 1440/390 x light/dark for review.
+  Note: styles.css and reporting.css must sit alongside this file (they do,
+  in this same docs/reporting/reports-design-mock/ folder).
+-->
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="reporting.css" />
+<style>
+  .mock-bar{position:sticky;top:0;z-index:60;display:flex;gap:8px;align-items:center;
+    padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px}
+  .mock-bar .grow{flex:1}
+  .lucide{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="mock-bar">
+  <strong>Reports — S-4 direction</strong>
+  <span class="grow"></span>
+  <label style="margin:0">State</label>
+  <select id="state" style="width:auto">
+    <option value="ready">Ready (data)</option>
+    <option value="loading">Loading (skeleton)</option>
+    <option value="empty">Empty (no data)</option>
+    <option value="exporting">Export in progress</option>
+    <option value="error">Error</option>
+  </select>
+  <button class="btn btn-secondary btn-sm" id="theme">Toggle theme</button>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">CM</div>
+      <div><div class="brand-text">Claim Management</div><div class="brand-sub">Phase 1 &middot; v1.0.0</div></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Claims</div>
+      <a href="#">Dashboard</a>
+      <a href="#">All claims</a>
+      <a href="#">New claim</a>
+      <div class="nav-label">Reference data</div>
+      <a href="#">Patients</a><a href="#">Payers</a><a href="#">Providers</a>
+      <div class="nav-label">Reporting</div>
+      <a href="#" class="active">Reports</a>
+      <div class="nav-label">Next phase</div>
+      <a href="#">Phase 2 roadmap</a>
+    </nav>
+    <div class="sidebar-footer"><strong>Ada Booth</strong><span>ANALYST</span></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>Reports</h1>
+        <span class="topbar-sub">Quarterly and annual claims performance</span>
+      </div>
+      <div class="btn-row" id="exports">
+        <button class="btn btn-secondary" id="btnPdf">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          Export PDF
+        </button>
+        <button class="btn" id="btnXlsx">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          Export Excel
+        </button>
+      </div>
+    </header>
+
+    <div class="content" id="content"><!-- filled by JS per state --></div>
+  </div>
+</div>
+
+<script>
+const P = {
+  filed: 1284, approved: 812, rejected: 143, pending: 329,
+  total: 4218650, avg: 12.4, denom: 955,
+};
+function money(n){return n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});}
+
+function controls(){
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="filters" style="border-bottom:none">
+      <div class="field">
+        <label>View</label>
+        <div class="segmented" role="group" aria-label="Report period type">
+          <button aria-pressed="true">Quarterly</button>
+          <button aria-pressed="false">Annual</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Year</label>
+        <select style="width:auto"><option>2026</option><option>2025</option><option>2024</option></select>
+      </div>
+      <div class="field" id="qfield">
+        <label>Quarter</label>
+        <div class="segmented" role="group" aria-label="Quarter">
+          <button aria-pressed="false">Q1</button>
+          <button aria-pressed="false">Q2</button>
+          <button aria-pressed="true">Q3</button>
+          <button aria-pressed="false">Q4</button>
+        </div>
+      </div>
+      <div class="field grow" style="text-align:right;align-self:flex-end">
+        <span class="stat-note">Jul 1 &ndash; Sep 30, 2026 &middot; anchored on filing date</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function statCards(){
+  return `
+  <div class="grid grid-4">
+    <div class="card stat"><div class="stat-label">Claims filed</div>
+      <div class="stat-value">${P.filed.toLocaleString()}</div>
+      <div class="stat-note">in this period</div></div>
+    <div class="card stat"><div class="stat-label">Total claim amount</div>
+      <div class="stat-value">${money(P.total)}</div>
+      <div class="stat-note">gross charged</div></div>
+    <div class="card stat"><div class="stat-label">Avg processing time</div>
+      <div class="stat-value">${P.avg} <span style="font-size:15px;color:var(--text-muted)">days</span></div>
+      <div class="stat-note">${P.denom.toLocaleString()} decided claims</div></div>
+    <div class="card stat"><div class="stat-label">Approval rate</div>
+      <div class="stat-value">${((P.approved/P.filed)*100).toFixed(1)}<span style="font-size:15px;color:var(--text-muted)">%</span></div>
+      <div class="stat-note">approved of filed</div></div>
+  </div>`;
+}
+
+function breakdownAndChart(){
+  const max = Math.max(P.approved,P.rejected,P.pending);
+  const rows = [
+    ['Approved', P.approved, 'var(--ok)'],
+    ['Pending',  P.pending,  'var(--warn)'],
+    ['Rejected', P.rejected, 'var(--danger)'],
+  ];
+  const chartH = 40*rows.length + 30;
+  const barsSvg = rows.map((r,i)=>{
+    const y = 20 + i*40;
+    const w = (r[1]/max)*100;
+    return `
+      <text x="0" y="${y-6}" font-size="11" fill="var(--text-muted)">${r[0]}</text>
+      <rect x="0" y="${y}" width="100%" height="16" rx="3" fill="var(--surface-2)"></rect>
+      <rect x="0" y="${y}" width="${w}%" height="16" rx="3" fill="${r[2]}"></rect>
+      <text x="calc(${w}% + 8px)" y="${y+12}" font-size="11" fill="var(--text)" style="font-variant-numeric:tabular-nums">${r[1].toLocaleString()}</text>`;
+  }).join('');
+  return `
+  <div class="grid grid-2 mt-16">
+    <div class="card">
+      <div class="card-head"><h2>Status breakdown</h2><span class="stat-note">${P.filed.toLocaleString()} claims</span></div>
+      <div class="card-body tight">
+        <table>
+          <thead><tr><th>Status</th><th class="num">Claims</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-PAID">approved</span></td><td class="num">${P.approved.toLocaleString()}</td><td class="num">${((P.approved/P.filed)*100).toFixed(1)}%</td></tr>
+            <tr><td><span class="badge badge-DRAFT">pending</span></td><td class="num">${P.pending.toLocaleString()}</td><td class="num">${((P.pending/P.filed)*100).toFixed(1)}%</td></tr>
+            <tr><td><span class="badge badge-DENIED">rejected</span></td><td class="num">${P.rejected.toLocaleString()}</td><td class="num">${((P.rejected/P.filed)*100).toFixed(1)}%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Claims by outcome</h2><span class="stat-note">this period</span></div>
+      <div class="card-body">
+        <div class="chart-frame">
+          <svg viewBox="0 0 360 ${chartH}" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Bar chart of approved, pending and rejected claim counts">
+            ${barsSvg}
+          </svg>
+        </div>
+        <div class="chart-legend">
+          <span><span class="swatch" style="background:var(--ok)"></span>Approved</span>
+          <span><span class="swatch" style="background:var(--warn)"></span>Pending</span>
+          <span><span class="swatch" style="background:var(--danger)"></span>Rejected</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function ready(){ return controls()+statCards()+breakdownAndChart(); }
+
+function loading(){
+  const sk = '<div class="card stat"><div class="skeleton skeleton-line" style="width:50%"></div><div class="skeleton skeleton-value"></div><div class="skeleton skeleton-line" style="width:40%"></div></div>';
+  return controls()+
+    `<div class="grid grid-4">${sk+sk+sk+sk}</div>
+     <div class="grid grid-2 mt-16">
+       <div class="card"><div class="card-head"><h2>Status breakdown</h2></div><div class="card-body">
+         <div class="skeleton skeleton-line" style="width:90%"></div>
+         <div class="skeleton skeleton-line" style="width:80%"></div>
+         <div class="skeleton skeleton-line" style="width:85%"></div></div></div>
+       <div class="card"><div class="card-head"><h2>Claims by outcome</h2></div><div class="card-body">
+         <div class="skeleton skeleton-chart"></div></div></div>
+     </div>`;
+}
+
+function empty(){
+  return controls()+
+   `<div class="card"><div class="card-body"><div class="empty">
+      <div class="empty-title">No claims were filed in Q3 2026</div>
+      <div>Pick another period, or <a href="#">file a claim</a> to start populating this report.</div>
+   </div></div></div>`;
+}
+
+function error(){
+  return controls()+
+   `<div class="alert alert-error">We couldn't load this report. Check your connection and try again.</div>`+
+   `<div class="card"><div class="card-body"><div class="empty">
+      <div class="empty-title">Report unavailable</div>
+      <div><button class="btn btn-secondary btn-sm">Retry</button></div></div></div></div>`;
+}
+
+const content = document.getElementById('content');
+function render(state){
+  document.getElementById('btnXlsx').className = 'btn';
+  document.getElementById('btnXlsx').innerHTML =
+    '<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export Excel';
+  if(state==='ready') content.innerHTML = ready();
+  else if(state==='loading') content.innerHTML = loading();
+  else if(state==='empty') content.innerHTML = empty();
+  else if(state==='error') content.innerHTML = error();
+  else if(state==='exporting'){
+    content.innerHTML = ready();
+    const b = document.getElementById('btnXlsx');
+    b.className = 'btn is-busy';
+    b.innerHTML = '<span class="spinner"></span> Preparing Excel&hellip;';
+  }
+}
+document.getElementById('state').addEventListener('change', e=>render(e.target.value));
+document.getElementById('theme').addEventListener('click', ()=>{
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme')==='dark'?'light':'dark');
+});
+render('ready');
+</script>
+</body>
+</html>

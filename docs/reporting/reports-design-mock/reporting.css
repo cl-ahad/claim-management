@@ -1,0 +1,62 @@
+/* Additive reporting tokens/styles — identical to docs/reporting/reports-tokens.css.
+   Kept alongside the mock so index.html renders when opened directly. */
+
+/* Segmented control */
+.segmented { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius-s); }
+.segmented button { appearance: none; border: 1px solid transparent; background: transparent;
+  color: var(--text-muted); font: inherit; font-size: 12px; font-weight: 550; padding: 5px 12px;
+  border-radius: 4px; cursor: pointer; white-space: nowrap;
+  transition: background 180ms ease-out, color 180ms ease-out; }
+.segmented button:hover:not([aria-pressed="true"]):not(:disabled) { color: var(--text);
+  background: rgba(19, 26, 36, .04); }
+.segmented button[aria-pressed="true"] { background: var(--surface); color: var(--accent);
+  border-color: var(--border-strong); box-shadow: var(--shadow); }
+.segmented button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.segmented button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Chart frame + legend */
+.chart-frame { width: 100%; padding: 4px 4px 0; }
+.chart-frame svg { width: 100%; height: auto; display: block; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 4px 2px;
+  font-size: 12px; color: var(--text-muted); }
+.chart-legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: 6px; vertical-align: -1px; }
+
+/* Skeleton */
+@keyframes skeleton-shimmer { 0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; } }
+.skeleton { border-radius: var(--radius-s); background: var(--surface-2);
+  background-image: linear-gradient(90deg, var(--surface-2) 0px, #e9edf2 40px, var(--surface-2) 80px);
+  background-size: 200px 100%; background-repeat: no-repeat;
+  animation: skeleton-shimmer 1200ms ease-in-out infinite; }
+.skeleton-line  { height: 12px; margin: 6px 0; }
+.skeleton-value { height: 26px; width: 60%; margin-top: 6px; }
+.skeleton-chart { height: 220px; margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Button busy state */
+.spinner { width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin 600ms linear infinite; flex-shrink: 0; }
+.btn.is-busy { pointer-events: none; opacity: .8; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 0s; } }
+
+.mt-16 { margin-top: 16px; }
+.mt-8  { margin-top: 8px; }
+
+/* Dark theme tokens (designed, not inverted) */
+[data-theme="dark"] {
+  --bg:#0d131c; --surface:#141d29; --surface-2:#1c2836; --border:#2a3948; --border-strong:#3a4c5e;
+  --text:#e7ecf3; --text-muted:#a3b0c0; --text-faint:#6f7d8f;
+  --accent:#5b9bff; --accent-hover:#78adff; --accent-soft:#16233b;
+  --ok:#4ecf9e; --ok-soft:#122a24; --warn:#e3ab54; --warn-soft:#2c2312;
+  --danger:#f08a8a; --danger-soft:#2e1717; --neutral:#9aa6b4; --neutral-soft:#212c39;
+  --info:#78aef0; --info-soft:#16273c;
+  --shadow:0 1px 2px rgba(0,0,0,.40), 0 1px 3px rgba(0,0,0,.30);
+  --shadow-lg:0 8px 28px rgba(0,0,0,.55);
+}
+[data-theme="dark"] .skeleton { background-image: linear-gradient(90deg,
+  var(--surface-2) 0px, #24303f 40px, var(--surface-2) 80px); }
+[data-theme="dark"] .segmented button:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: rgba(255,255,255,.05); }
