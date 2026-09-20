@@ -1,0 +1,36 @@
+flowchart TB
+  subgraph FE["Frontend (Vite + React 19)"]
+    RP["ReportsPage.tsx<br/>period picker · stat cards · bar chart<br/>(inline SVG, no new lib)"]
+    EXP["Export buttons<br/>GET .../export.pdf · .../export.xlsx"]
+  end
+
+  subgraph WEB["web/ (REST)"]
+    RC["ReportController<br/>@RequestMapping('/api/reports')<br/>GET, no @PreAuthorize — VIEWER-readable"]
+  end
+
+  subgraph SVC["service/"]
+    RS["ReportingService<br/>aggregate → ReportData<br/>quarter/year grouping · status mapping · avg processing time"]
+    EX["ReportExporter (PDF + Excel)<br/>OpenPDF · Apache POI · JFreeChart PNG"]
+    CS["ClaimService.money() idiom (reused)"]
+  end
+
+  subgraph REPO["repository/"]
+    CR["ClaimRepository<br/>+ reportRows(from,to) aggregate @Query"]
+    HR["ClaimStatusHistoryRepository<br/>+ decisionTimestamps(from,to)"]
+  end
+
+  subgraph DB["Postgres (read-only, no migration)"]
+    T1["claim<br/>created_at · status · total_charge · paid_amount"]
+    T2["claim_status_history<br/>changed_at · to_status (append-only)"]
+  end
+
+  RP -->|api GET /reports/summary| RC
+  EXP --> RC
+  RC --> RS
+  RS --> CR
+  RS --> HR
+  RS --> CS
+  RC -->|export bytes| EX
+  EX --> RS
+  CR --> T1
+  HR --> T2
