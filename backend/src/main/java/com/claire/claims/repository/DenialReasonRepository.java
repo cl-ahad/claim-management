@@ -14,5 +14,12 @@ public interface DenialReasonRepository extends JpaRepository<DenialReason, Long
 
     List<DenialReason> findByClaimIdOrderByCreatedAtAsc(Long claimId);
 
+    /**
+     * Reasons for several claims at once, ordered so a claim's rows stay in
+     * capture order - lets the worklist enrich a page of claims without firing
+     * a query per row. Empty id list returns nothing.
+     */
+    List<DenialReason> findByClaimIdInOrderByClaimIdAscCreatedAtAsc(List<Long> claimIds);
+
     boolean existsByClaimId(Long claimId);
 }

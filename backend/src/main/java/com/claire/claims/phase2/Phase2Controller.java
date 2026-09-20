@@ -58,17 +58,9 @@ public class Phase2Controller {
 
     // ----- 2.4 Denial management and appeals -----------------------------
 
-    // The appeal workflow (DENIED -> APPEALED, escalation and outcomes) is now
-    // built - see AppealController. The denial worklist below remains a stub.
-
-    /**
-     * Denial worklist with CARC/RARC reason codes.
-     * Spec: docs/PHASE2_HANDOFF.md section 2.4
-     */
-    @GetMapping("/api/denials")
-    public List<Object> denials(@RequestParam(required = false) Long payerId) {
-        throw new NotImplementedYetException("Denial worklist", "2.4");
-    }
+    // The appeal workflow (DENIED -> APPEALED, escalation and outcomes) and the
+    // denial worklist (GET /api/denials) are now built - see AppealController
+    // and DenialWorklistController.
 
     // ----- 2.5 Attachments ------------------------------------------------
 
