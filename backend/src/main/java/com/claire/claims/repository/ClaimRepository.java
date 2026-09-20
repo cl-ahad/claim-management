@@ -25,6 +25,20 @@ public interface ClaimRepository extends JpaRepository<Claim, Long>,
     @EntityGraph(attributePaths = {"patient", "provider", "payer"})
     Page<Claim> findAll(Specification<Claim> spec, Pageable pageable);
 
+    /**
+     * The denial worklist candidates: every claim currently in one of the
+     * given statuses (DENIED, and APPEALED - a denial under appeal is still on
+     * the worklist), optionally scoped to one payer. The entity graph pulls
+     * patient/provider/payer so the list does not fire a query per row. The
+     * service enriches each with its reasons and deadline and sorts by deadline;
+     * the set is bounded (open denials), so it is fetched whole rather than paged.
+     */
+    @EntityGraph(attributePaths = {"patient", "provider", "payer"})
+    List<Claim> findByStatusInAndPayerId(List<ClaimStatus> statuses, Long payerId);
+
+    @EntityGraph(attributePaths = {"patient", "provider", "payer"})
+    List<Claim> findByStatusIn(List<ClaimStatus> statuses);
+
     @EntityGraph(attributePaths = {"patient", "provider", "payer", "policy"})
     Optional<Claim> findWithReferencesById(Long id);
 

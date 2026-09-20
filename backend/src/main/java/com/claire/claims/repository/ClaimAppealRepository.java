@@ -17,6 +17,13 @@ public interface ClaimAppealRepository extends JpaRepository<ClaimAppeal, Long> 
 
     List<ClaimAppeal> findByClaimIdOrderByLevelAscFiledOnAsc(Long claimId);
 
+    /**
+     * Appeals for several claims at once, ordered so the last row for a claim
+     * is its highest level - lets the worklist read each claim's current
+     * (stamped) deadline without a query per row. Empty id list returns nothing.
+     */
+    List<ClaimAppeal> findByClaimIdInOrderByClaimIdAscLevelAsc(List<Long> claimIds);
+
     Optional<ClaimAppeal> findByClaimIdAndStatus(Long claimId, AppealStatus status);
 
     boolean existsByClaimIdAndStatus(Long claimId, AppealStatus status);
