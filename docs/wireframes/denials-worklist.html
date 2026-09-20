@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Denials worklist — wireframe (S-3)</title>
+  <!-- Uses the REAL committed tokens/components: frontend/src/styles.css.
+       No new colors, sizes or radii are introduced here. -->
+  <link rel="stylesheet" href="../../frontend/src/styles.css" />
+  <style>
+    /* Wireframe-only helpers that reuse existing tokens (no new palette). */
+    .wf-note { max-width: 1240px; margin: 0 auto 14px; font-size: 12px; color: var(--text-muted); }
+    .content { max-width: 1280px; margin: 0 auto; width: 100%; }
+    /* Deadline column treatments — built ONLY from existing tokens. */
+    .days { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+    .days-ok    { color: var(--text); }
+    .days-warn  { color: var(--warn); font-weight: 600; }
+    .days-danger{ color: var(--danger); font-weight: 600; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-ok    { background: var(--ok); }
+    .dot-warn  { background: var(--warn); }
+    .dot-danger{ background: var(--danger); }
+    /* Skeleton loading, in the final table layout, tinted from surface tokens. */
+    .sk { display: inline-block; height: 11px; border-radius: 4px;
+          background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));
+          background-size: 200% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { .sk, .spinner { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar reused verbatim from the app shell (Layout.tsx classes). -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">CM</div>
+        <div>
+          <div class="brand-text">Claim Mgmt</div>
+          <div class="brand-sub">Denials &amp; appeals</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="nav-label">Work</div>
+        <a href="#">Dashboard</a>
+        <a href="#">Claims</a>
+        <a href="#" class="active">Denials worklist</a>
+        <div class="nav-label">Reference</div>
+        <a href="#">Payers</a>
+        <a href="#">Providers</a>
+        <a href="#">Patients</a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>A. Biller</strong>
+        BILLER
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">
+          <h1>Denials worklist</h1>
+          <div class="topbar-sub">Denied claims with an open appeal window, most urgent first</div>
+        </div>
+      </div>
+
+      <div class="content">
+        <p class="wf-note">Wireframe for S-3 &mdash; rendered from the committed token set in
+          <code>frontend/src/styles.css</code>. No new colors or scales introduced.</p>
+
+        <div class="card">
+          <!-- Filters: payer, reason code, date range (reason group + CARC) -->
+          <div class="filters">
+            <div class="field">
+              <label for="payer">Payer</label>
+              <select id="payer">
+                <option>All payers</option>
+                <option>Aetna</option>
+                <option>UnitedHealthcare</option>
+                <option>Medicare</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="group">Reason group</label>
+              <select id="group">
+                <option>All groups</option>
+                <option>CO — Contractual</option>
+                <option>PR — Patient responsibility</option>
+                <option>OA — Other adjustment</option>
+                <option>PI — Payer initiated</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="carc">Reason code (CARC)</label>
+              <input id="carc" placeholder="e.g. 197" />
+            </div>
+            <div class="field">
+              <label for="from">Denied from</label>
+              <input id="from" type="date" value="2026-08-01" />
+            </div>
+            <div class="field">
+              <label for="to">Denied to</label>
+              <input id="to" type="date" value="2026-09-20" />
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button class="btn btn-secondary">Clear</button>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Claim number</th>
+                <th>Patient</th>
+                <th>Payer</th>
+                <th>Denial reason</th>
+                <th>Denied</th>
+                <th>Appeal deadline</th>
+                <th class="num">Days remaining</th>
+                <th class="num">Charged</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Danger: expired -->
+              <tr class="clickable">
+                <td class="mono">CLM-100238</td>
+                <td>Rivera, Marta<div class="faint mono" style="font-size:11px">MRN-88213</div></td>
+                <td>Medicare</td>
+                <td><span class="pill">CO-197</span> <span class="muted">Auth missing</span></td>
+                <td class="nowrap">Aug 4, 2026</td>
+                <td class="nowrap">Sep 3, 2026</td>
+                <td class="num"><span class="days days-danger"><span class="dot dot-danger"></span>Expired</span></td>
+                <td class="num">$2,140.00</td>
+                <td><span class="badge badge-DENIED">DENIED</span></td>
+              </tr>
+              <!-- Danger: <= 7 days -->
+              <tr class="clickable">
+                <td class="mono">CLM-100251</td>
+                <td>Okafor, Daniel<div class="faint mono" style="font-size:11px">MRN-90114</div></td>
+                <td>Aetna</td>
+                <td><span class="pill">PR-1</span> <span class="muted">Deductible</span></td>
+                <td class="nowrap">Aug 22, 2026</td>
+                <td class="nowrap">Sep 23, 2026</td>
+                <td class="num"><span class="days days-danger"><span class="dot dot-danger"></span>3 days</span></td>
+                <td class="num">$680.50</td>
+                <td><span class="badge badge-DENIED">DENIED</span></td>
+              </tr>
+              <!-- Warn: <= 14 days -->
+              <tr class="clickable">
+                <td class="mono">CLM-100263</td>
+                <td>Chen, Wei<div class="faint mono" style="font-size:11px">MRN-77420</div></td>
+                <td>UnitedHealthcare</td>
+                <td><span class="pill">CO-45</span> <span class="muted">Over fee schedule</span></td>
+                <td class="nowrap">Aug 28, 2026</td>
+                <td class="nowrap">Sep 30, 2026</td>
+                <td class="num"><span class="days days-warn"><span class="dot dot-warn"></span>10 days</span></td>
+                <td class="num">$1,305.00</td>
+                <td><span class="badge badge-DENIED">DENIED</span></td>
+              </tr>
+              <!-- OK: healthy window; also shows an already-appealed row -->
+              <tr class="clickable">
+                <td class="mono">CLM-100270</td>
+                <td>Nowak, Ewa<div class="faint mono" style="font-size:11px">MRN-51338</div></td>
+                <td>Aetna</td>
+                <td><span class="pill">PI-16</span> <span class="muted">Lacks information</span></td>
+                <td class="nowrap">Sep 5, 2026</td>
+                <td class="nowrap">Oct 20, 2026</td>
+                <td class="num"><span class="days days-ok"><span class="dot dot-ok"></span>30 days</span></td>
+                <td class="num">$912.75</td>
+                <td><span class="badge badge-DENIED">DENIED</span></td>
+              </tr>
+              <tr class="clickable">
+                <td class="mono">CLM-100281</td>
+                <td>Silva, João<div class="faint mono" style="font-size:11px">MRN-64027</div></td>
+                <td>Medicare</td>
+                <td><span class="pill">CO-16</span> <span class="pill">+RARC N290</span></td>
+                <td class="nowrap">Sep 9, 2026</td>
+                <td class="nowrap">Nov 8, 2026</td>
+                <td class="num"><span class="days days-ok"><span class="dot dot-ok"></span>49 days</span></td>
+                <td class="num">$3,410.00</td>
+                <td><span class="badge badge-APPEALED">APPEALED</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span>5 of 128 denied claims</span>
+            <div class="btn-row">
+              <button class="btn btn-secondary btn-sm" disabled>Previous</button>
+              <button class="btn btn-secondary btn-sm">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading state: skeleton in the final table layout (not a spinner in a void). -->
+        <h2 class="mt-24" style="margin-bottom:10px">Loading state</h2>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Claim number</th><th>Patient</th><th>Payer</th><th>Denial reason</th>
+                <th>Denied</th><th>Appeal deadline</th><th class="num">Days remaining</th>
+                <th class="num">Charged</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="sk" style="width:88px"></span></td><td><span class="sk" style="width:120px"></span></td><td><span class="sk" style="width:74px"></span></td><td><span class="sk" style="width:140px"></span></td><td><span class="sk" style="width:70px"></span></td><td><span class="sk" style="width:70px"></span></td><td class="num"><span class="sk" style="width:52px"></span></td><td class="num"><span class="sk" style="width:60px"></span></td><td><span class="sk" style="width:64px"></span></td></tr>
+              <tr><td><span class="sk" style="width:88px"></span></td><td><span class="sk" style="width:104px"></span></td><td><span class="sk" style="width:74px"></span></td><td><span class="sk" style="width:120px"></span></td><td><span class="sk" style="width:70px"></span></td><td><span class="sk" style="width:70px"></span></td><td class="num"><span class="sk" style="width:52px"></span></td><td class="num"><span class="sk" style="width:60px"></span></td><td><span class="sk" style="width:64px"></span></td></tr>
+              <tr><td><span class="sk" style="width:88px"></span></td><td><span class="sk" style="width:132px"></span></td><td><span class="sk" style="width:74px"></span></td><td><span class="sk" style="width:150px"></span></td><td><span class="sk" style="width:70px"></span></td><td><span class="sk" style="width:70px"></span></td><td class="num"><span class="sk" style="width:52px"></span></td><td class="num"><span class="sk" style="width:60px"></span></td><td><span class="sk" style="width:64px"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty state: says what goes here and the next action. -->
+        <h2 class="mt-24" style="margin-bottom:10px">Empty state</h2>
+        <div class="card">
+          <div class="empty">
+            <div class="empty-title">No denied claims in this window</div>
+            <div>Nothing is awaiting an appeal for these filters. Widen the denied-date range or clear the reason-code filter.</div>
+            <div class="btn-row" style="justify-content:center; margin-top:14px">
+              <button class="btn btn-secondary btn-sm">Clear filters</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
