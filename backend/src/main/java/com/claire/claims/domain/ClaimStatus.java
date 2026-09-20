@@ -13,8 +13,10 @@ import java.util.Set;
  * the /api/reference/status-transitions endpoint and the React UI all read
  * from here, so the rules cannot drift between layers.
  *
- * APPEALED exists in the model but has no inbound transition in Phase 1 -
- * the appeal workflow is Phase 2 (see docs/PHASE2_HANDOFF.md, item 2.4).
+ * APPEALED is reached from DENIED when an appeal is filed (feature 2.4). The
+ * appeal preconditions - a structured denial reason and an unexpired deadline -
+ * are enforced by AppealService before it drives this transition; the machine
+ * owns only the legality of the transition and the audit row it writes.
  */
 public enum ClaimStatus {
 
@@ -47,9 +49,10 @@ public enum ClaimStatus {
         TRANSITIONS.put(REJECTED,       EnumSet.of(DRAFT, VOID));
         TRANSITIONS.put(ACCEPTED,       EnumSet.of(PAID, PARTIALLY_PAID, DENIED, VOID));
         TRANSITIONS.put(PARTIALLY_PAID, EnumSet.of(PAID, DENIED, VOID));
-        // DENIED -> APPEALED is Phase 2. Until then a denial can only be voided.
-        TRANSITIONS.put(DENIED,         EnumSet.of(VOID));
-        TRANSITIONS.put(APPEALED,       EnumSet.of(PAID, DENIED, VOID));
+        // A denial may be appealed (feature 2.4) or voided.
+        TRANSITIONS.put(DENIED,         EnumSet.of(APPEALED, VOID));
+        // An appeal resolves to paid, partially paid, back to denied, or void.
+        TRANSITIONS.put(APPEALED,       EnumSet.of(PAID, PARTIALLY_PAID, DENIED, VOID));
         TRANSITIONS.put(PAID,           EnumSet.noneOf(ClaimStatus.class));
         TRANSITIONS.put(VOID,           EnumSet.noneOf(ClaimStatus.class));
     }

@@ -2,7 +2,6 @@ package com.claire.claims.service;
 
 import com.claire.claims.common.ApiExceptions.BusinessRuleException;
 import com.claire.claims.common.ApiExceptions.ConflictException;
-import com.claire.claims.common.ApiExceptions.NotImplementedYetException;
 import com.claire.claims.domain.Claim;
 import com.claire.claims.domain.ClaimStatus;
 import com.claire.claims.domain.ClaimStatusHistory;
@@ -36,11 +35,6 @@ public class ClaimStatusMachine {
 
         if (from == to) {
             throw new ConflictException("Claim " + claim.getClaimNumber() + " is already " + from);
-        }
-
-        // Phase 2 boundary: the appeal workflow is specified but not built.
-        if (from == ClaimStatus.DENIED && to == ClaimStatus.APPEALED) {
-            throw new NotImplementedYetException("The denial appeal workflow", "2.4");
         }
 
         if (!from.canTransitionTo(to)) {

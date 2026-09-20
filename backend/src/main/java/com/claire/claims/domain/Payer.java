@@ -7,6 +7,17 @@ import java.time.OffsetDateTime;
 @Table(name = "payer")
 public class Payer {
 
+    /**
+     * Fallback appeal window, in days, when a payer carries no explicit value.
+     *
+     * OPEN DECISION: 90 days is a common commercial-payer figure used as a
+     * placeholder. The production default must be confirmed by the business
+     * before go-live, and payer-specific values keyed per payer, because the
+     * deadline is unforgiving once stamped. Kept as a constant so there is one
+     * place to change it and it matches the V4 migration's column default.
+     */
+    public static final int DEFAULT_APPEAL_WINDOW_DAYS = 90;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,6 +40,14 @@ public class Payer {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    /**
+     * Days a claim may be appealed after denial, for this payer. Stamped onto
+     * an appeal's deadline at filing and never recomputed. Defaults to
+     * {@link #DEFAULT_APPEAL_WINDOW_DAYS} at the database level.
+     */
+    @Column(name = "appeal_window_days", nullable = false)
+    private int appealWindowDays = DEFAULT_APPEAL_WINDOW_DAYS;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
@@ -53,6 +72,8 @@ public class Payer {
     public void setPhone(String phone) { this.phone = phone; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+    public int getAppealWindowDays() { return appealWindowDays; }
+    public void setAppealWindowDays(int appealWindowDays) { this.appealWindowDays = appealWindowDays; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

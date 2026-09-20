@@ -58,16 +58,8 @@ public class Phase2Controller {
 
     // ----- 2.4 Denial management and appeals -----------------------------
 
-    /**
-     * Opens an appeal on a denied claim and drives DENIED -&gt; APPEALED.
-     * Spec: docs/PHASE2_HANDOFF.md section 2.4
-     */
-    @PostMapping("/api/claims/{id}/appeal")
-    @PreAuthorize("hasAnyRole('ADMIN','BILLER')")
-    public Map<String, Object> appeal(@PathVariable Long id,
-                                      @RequestBody(required = false) Map<String, Object> body) {
-        throw new NotImplementedYetException("Claim appeal workflow", "2.4");
-    }
+    // The appeal workflow (DENIED -> APPEALED, escalation and outcomes) is now
+    // built - see AppealController. The denial worklist below remains a stub.
 
     /**
      * Denial worklist with CARC/RARC reason codes.
