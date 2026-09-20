@@ -1,0 +1,30 @@
+%% S-2 Reporting — CURRENT system (the system the work goes into today)
+%% Renders inline on GitHub. Facts confirmed from Demo2 source (S-1 note).
+flowchart LR
+  subgraph FE["Frontend (Vite 7 + React 19, HashRouter)"]
+    Dash["DashboardPage<br/>(grid stat cards)"]
+    ClaimsList["ClaimsListPage<br/>(filters, pagination)"]
+    ClaimDetail["ClaimDetailPage"]
+    ApiClient["api&lt;T&gt;(path) client<br/>(useAuth)"]
+  end
+  subgraph BE["Backend (Spring Boot 4.1.1, Java 21, com.claire.claims)"]
+    ClaimCtrl["web/ClaimController<br/>@RequestMapping /api/claims"]
+    Svc["service/ClaimService<br/>.summary(), money()"]
+    Machine["service/ClaimStatusMachine<br/>(only mutator of status)"]
+    Repo["repository/ClaimRepository<br/>summaryByStatus()"]
+    HistRepo["repository/ClaimStatusHistoryRepository"]
+    Dtos["dto/ClaimDtos (records)"]
+  end
+  DB[("PostgreSQL<br/>claim, claim_status_history<br/>Flyway V1/V2")]
+
+  Dash --> ApiClient
+  ClaimsList --> ApiClient
+  ClaimDetail --> ApiClient
+  ApiClient -->|GET/POST| ClaimCtrl
+  ClaimCtrl --> Svc
+  Svc --> Machine
+  Svc --> Repo
+  Svc --> HistRepo
+  Svc --> Dtos
+  Repo --> DB
+  HistRepo --> DB
