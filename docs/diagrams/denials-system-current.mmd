@@ -1,0 +1,28 @@
+%% Denial management & appeals — system the work goes INTO (as of main, S-1 recon)
+flowchart TB
+    subgraph API["Web layer (Spring MVC controllers, @PreAuthorize)"]
+        CC["ClaimController<br/>GET/POST/PUT + POST {id}/transition<br/>writes: hasAnyRole ADMIN,BILLER"]
+        P2["Phase2Controller (STUBS)<br/>POST /api/claims/{id}/appeal -> 501<br/>GET /api/denials -> 501"]
+    end
+    subgraph SVC["Service layer"]
+        CS["ClaimService.transition()<br/>@Transactional"]
+        SM["ClaimStatusMachine.apply()<br/>ONLY mutator of claim.status<br/>DENIED->APPEALED throws<br/>NotImplementedYetException 2.4"]
+    end
+    subgraph DOM["Domain / persistence"]
+        EN["ClaimStatus enum + TRANSITIONS<br/>DENIED -> VOID only<br/>APPEALED -> PAID,DENIED,VOID"]
+        CL["Claim (created_by = owner)"]
+        HIST["claim_status_history<br/>append-only audit"]
+        PAY["Payer (no appeal_window_days)"]
+    end
+    subgraph DB["Postgres — Flyway V1, V2"]
+        T["claim, claim_status_history, payer<br/>(no denial_reason, no claim_appeal)"]
+    end
+    ERR["GlobalExceptionHandler (RFC 9457)<br/>400 / 403 / 409 / 501"]
+
+    CC --> CS --> SM --> EN
+    SM --> HIST
+    SM --> CL
+    P2 -. not built .-> SVC
+    CS --> PAY
+    DOM --> DB
+    API --> ERR
