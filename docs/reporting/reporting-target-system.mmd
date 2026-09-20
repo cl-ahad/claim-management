@@ -1,0 +1,40 @@
+%% S-2 Reporting — TARGET system (the system the work leaves behind). NEW = added by this feature.
+%% Renders inline on GitHub. No DB migration required (read-only over existing tables).
+flowchart LR
+  subgraph FE["Frontend (Vite 7 + React 19, HashRouter)"]
+    Dash["DashboardPage"]
+    ClaimsList["ClaimsListPage"]
+    ClaimDetail["ClaimDetailPage"]
+    ReportsPage["ReportsPage (NEW)<br/>period selector Q/annual,<br/>stat cards + chart,<br/>PDF/Excel export buttons"]
+    ApiClient["api&lt;T&gt;(path) client"]
+  end
+  subgraph BE["Backend (Spring Boot, com.claire.claims)"]
+    ClaimCtrl["web/ClaimController<br/>/api/claims"]
+    ReportCtrl["web/ReportController (NEW)<br/>@RequestMapping /api/reports<br/>GET summary, /export.pdf, /export.xlsx"]
+    Svc["service/ClaimService"]
+    ReportSvc["service/ReportService (NEW)<br/>aggregate by period,<br/>status mapping, avg proc time"]
+    ExportSvc["service/ReportExportService (NEW)<br/>POI xlsx + OpenPDF,<br/>chart PNG embedded"]
+    Machine["service/ClaimStatusMachine"]
+    Repo["repository/ClaimRepository<br/>summaryByStatus() + date-window query (NEW)"]
+    HistRepo["repository/ClaimStatusHistoryRepository"]
+    ReportDtos["dto/ReportDtos (NEW records)"]
+  end
+  DB[("PostgreSQL<br/>claim, claim_status_history<br/>(no migration needed)")]
+
+  Dash --> ApiClient
+  ClaimsList --> ApiClient
+  ClaimDetail --> ApiClient
+  ReportsPage --> ApiClient
+  ApiClient -->|GET /reports| ReportCtrl
+  ApiClient -->|GET /reports/export.pdf .xlsx| ReportCtrl
+  ClaimCtrl --> Svc
+  ReportCtrl --> ReportSvc
+  ReportCtrl --> ExportSvc
+  ReportSvc --> Repo
+  ReportSvc --> HistRepo
+  ReportSvc --> ReportDtos
+  ExportSvc --> ReportSvc
+  Svc --> Machine
+  Svc --> Repo
+  Repo --> DB
+  HistRepo --> DB
