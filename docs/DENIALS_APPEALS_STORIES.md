@@ -1,7 +1,7 @@
 # Denial Management & Appeals — Story Proposal (S-2)
 
 **Status: PROPOSED — awaiting commander review. No implementation begins until these are approved.**
-Repo: `cl-ahad/claim-management` · Base: `main` · Diagrams: `docs/diagrams/denials-system-{current,target}.png`
+Repo: `cl-ahad/claim-management` · Base: `main` · Diagram sources: `docs/diagrams/denials-system-{current,target}.mmd` (also rendered inline below)
 
 Grounded in S-1 recon: `ClaimStatusMachine.apply()` is the only mutator of `claim.status` and returns the `claim_status_history` audit row; `DENIED->APPEALED` currently throws `NotImplementedYetException("...appeal workflow","2.4")`; `APPEALED` routes to `{PAID,DENIED,VOID}` but **not** `PARTIALLY_PAID`; no `denial_reason`/`claim_appeal` tables; `payer.appeal_window_days` does not exist; next Flyway version is **V3**; single-tenant (ownership = `claim.created_by`); RFC 9457 handler maps BusinessRule->400, Conflict->409, AccessDenied->403.
 
@@ -12,6 +12,87 @@ Grounded in S-1 recon: `ClaimStatusMachine.apply()` is the only mutator of `clai
 1. **Default `payer.appeal_window_days`** — no value exists today. A default is required for payers with no explicit window, and it must be documented before production. *Proposed for discussion: 60 days.* **Please confirm the number.**
 2. **Denial date definition** — the deadline is `denial_date + appeal_window_days`, stamped on filing and never recomputed. Is `denial_date` the date the claim entered `DENIED` (status-history timestamp), or the **remittance adjudication date** when the denial came from a remittance? These can differ. **Please confirm which date anchors the deadline.**
 3. **Verification path** — sandbox has no Java/Maven/Docker and the repo has no CI workflow or backend tests. Implementation will add a GitHub Actions `mvn verify` job with a Postgres service (Testcontainers) and author the acceptance tests fresh. **Please confirm CI-based verification is acceptable.**
+
+---
+
+## Diagrams
+
+### System the work goes INTO (current, as of `main`)
+
+```mermaid
+%% Denial management & appeals — system the work goes INTO (as of main, S-1 recon)
+flowchart TB
+    subgraph API["Web layer (Spring MVC controllers, @PreAuthorize)"]
+        CC["ClaimController<br/>GET/POST/PUT + POST {id}/transition<br/>writes: hasAnyRole ADMIN,BILLER"]
+        P2["Phase2Controller (STUBS)<br/>POST /api/claims/{id}/appeal -> 501<br/>GET /api/denials -> 501"]
+    end
+    subgraph SVC["Service layer"]
+        CS["ClaimService.transition()<br/>@Transactional"]
+        SM["ClaimStatusMachine.apply()<br/>ONLY mutator of claim.status<br/>DENIED->APPEALED throws<br/>NotImplementedYetException 2.4"]
+    end
+    subgraph DOM["Domain / persistence"]
+        EN["ClaimStatus enum + TRANSITIONS<br/>DENIED -> VOID only<br/>APPEALED -> PAID,DENIED,VOID"]
+        CL["Claim (created_by = owner)"]
+        HIST["claim_status_history<br/>append-only audit"]
+        PAY["Payer (no appeal_window_days)"]
+    end
+    subgraph DB["Postgres — Flyway V1, V2"]
+        T["claim, claim_status_history, payer<br/>(no denial_reason, no claim_appeal)"]
+    end
+    ERR["GlobalExceptionHandler (RFC 9457)<br/>400 / 403 / 409 / 501"]
+
+    CC --> CS --> SM --> EN
+    SM --> HIST
+    SM --> CL
+    P2 -. not built .-> SVC
+    CS --> PAY
+    DOM --> DB
+    API --> ERR
+```
+
+### System it would LEAVE BEHIND (target after the epic lands)
+
+```mermaid
+%% Denial management & appeals — system the work LEAVES BEHIND (target after epic lands)
+flowchart TB
+    subgraph API["Web layer (Spring MVC controllers, @PreAuthorize)"]
+        CC["ClaimController (unchanged)"]
+        DC["DenialController<br/>POST {id}/denial-reasons (ADMIN,BILLER)<br/>GET /api/denials — worklist (any auth, VIEWER read)"]
+        AC["AppealController<br/>POST {id}/appeals — file (ADMIN,BILLER)<br/>POST /appeals/{id}/outcome (ADMIN,BILLER)<br/>POST /appeals/{id}/withdraw (ADMIN,BILLER)"]
+    end
+    subgraph SVC["Service layer"]
+        CS["ClaimService.transition() @Transactional"]
+        SM["ClaimStatusMachine.apply()<br/>DENIED->APPEALED,VOID<br/>APPEALED->PAID,PARTIALLY_PAID,DENIED,VOID<br/>onAppeal guard: >=1 reason + unexpired deadline"]
+        DS["DenialService<br/>structured reasons, MANUAL/REMITTANCE"]
+        AS["AppealService<br/>window/deadline, one-open, levels 1-3<br/>outcome -> transition (never sets status)"]
+    end
+    subgraph DOM["Domain / persistence"]
+        EN["ClaimStatus enum + TRANSITIONS (extended)"]
+        CL["Claim (created_by = owner)"]
+        HIST["claim_status_history (append-only)"]
+        DR["denial_reason<br/>group CO/PR/OA/PI + CARC + optional RARC<br/>source MANUAL|REMITTANCE"]
+        AP["claim_appeal<br/>level, filed_on, deadline (frozen), outcome, decided_on<br/>one OPEN per claim; WITHDRAWN not deleted"]
+        PAY["Payer + appeal_window_days (default documented)"]
+    end
+    subgraph DB["Postgres — Flyway V1, V2, +V3"]
+        T["+ denial_reason, + claim_appeal<br/>+ payer.appeal_window_days"]
+    end
+    ERR["GlobalExceptionHandler (RFC 9457)<br/>400 missing reason / past deadline<br/>409 not-denied / second-open<br/>403 VIEWER write"]
+
+    CC --> CS
+    DC --> DS --> DR
+    AC --> AS
+    AS --> CS --> SM --> EN
+    AS --> AP
+    SM --> HIST
+    SM --> CL
+    DS --> CL
+    AS --> PAY
+    DOM --> DB
+    API --> ERR
+```
+
+The same diagrams are committed as standalone Mermaid sources under `docs/diagrams/` and rendered to PNG/SVG during authoring (`_svg/`, not committed to keep the tree text-only).
 
 ---
 
