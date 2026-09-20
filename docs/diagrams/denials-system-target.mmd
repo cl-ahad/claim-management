@@ -1,0 +1,37 @@
+%% Denial management & appeals — system the work LEAVES BEHIND (target after epic lands)
+flowchart TB
+    subgraph API["Web layer (Spring MVC controllers, @PreAuthorize)"]
+        CC["ClaimController (unchanged)"]
+        DC["DenialController<br/>POST {id}/denial-reasons (ADMIN,BILLER)<br/>GET /api/denials — worklist (any auth, VIEWER read)"]
+        AC["AppealController<br/>POST {id}/appeals — file (ADMIN,BILLER)<br/>POST /appeals/{id}/outcome (ADMIN,BILLER)<br/>POST /appeals/{id}/withdraw (ADMIN,BILLER)"]
+    end
+    subgraph SVC["Service layer"]
+        CS["ClaimService.transition() @Transactional"]
+        SM["ClaimStatusMachine.apply()<br/>DENIED->APPEALED,VOID<br/>APPEALED->PAID,PARTIALLY_PAID,DENIED,VOID<br/>onAppeal guard: >=1 reason + unexpired deadline"]
+        DS["DenialService<br/>structured reasons, MANUAL/REMITTANCE"]
+        AS["AppealService<br/>window/deadline, one-open, levels 1-3<br/>outcome -> transition (never sets status)"]
+    end
+    subgraph DOM["Domain / persistence"]
+        EN["ClaimStatus enum + TRANSITIONS (extended)"]
+        CL["Claim (created_by = owner)"]
+        HIST["claim_status_history (append-only)"]
+        DR["denial_reason<br/>group CO/PR/OA/PI + CARC + optional RARC<br/>source MANUAL|REMITTANCE"]
+        AP["claim_appeal<br/>level, filed_on, deadline (frozen), outcome, decided_on<br/>one OPEN per claim; WITHDRAWN not deleted"]
+        PAY["Payer + appeal_window_days (default documented)"]
+    end
+    subgraph DB["Postgres — Flyway V1, V2, +V3"]
+        T["+ denial_reason, + claim_appeal<br/>+ payer.appeal_window_days"]
+    end
+    ERR["GlobalExceptionHandler (RFC 9457)<br/>400 missing reason / past deadline<br/>409 not-denied / second-open<br/>403 VIEWER write"]
+
+    CC --> CS
+    DC --> DS --> DR
+    AC --> AS
+    AS --> CS --> SM --> EN
+    AS --> AP
+    SM --> HIST
+    SM --> CL
+    DS --> CL
+    AS --> PAY
+    DOM --> DB
+    API --> ERR
