@@ -1,17 +1,27 @@
 /* =====================================================================
    Reports section — component styles (S-5 · REP-5)
    ---------------------------------------------------------------------
-   Additive to styles.css. Every value reads an existing token from that
-   file's :root — no new literal colour, size, radius, shadow or type is
-   introduced. These are the styles the Reports page needs on top of the
-   shared system: the report-type toggle, the on-screen charts (frame +
-   legend + axis), the loading skeleton and the export-busy button.
+   Additive to styles.css. Every value reads a token — either an existing
+   token from that file's :root, or --skeleton-hi, the one reporting-owned
+   token declared below (the loading skeleton's shimmer highlight, carried
+   in both themes). No literal colour, size, radius, shadow or type is
+   introduced in a component. These are the styles the Reports page needs
+   on top of the shared system: the report-type toggle, the on-screen
+   charts (frame + legend + axis), the loading skeleton and the
+   export-busy button.
 
    This is the reconciled design direction from S-3 (docs/reporting/
    reports-tokens.css). It is a separate file, imported alongside
    styles.css in main.tsx, so the reporting styles stay self-contained
    and the shared stylesheet is untouched.
    ===================================================================== */
+
+/* Reporting-owned token: the skeleton shimmer highlight. Declared here
+   (not in styles.css) so the reporting styles stay self-contained; the
+   dark value is carried in the [data-theme="dark"] block at the foot. */
+:root {
+  --skeleton-hi: #e9edf2;
+}
 
 /* ---------------------------------------------------------------------
    Segmented control — the report-type toggle (Quarterly | Annual) and
@@ -29,13 +39,17 @@
 }
 .segmented button {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
   font-size: 12px;
   font-weight: 550;
-  padding: 5px 12px;
+  padding: 5px 14px;
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
@@ -103,7 +117,8 @@
 /* ---------------------------------------------------------------------
    Skeleton — the LOADING state, drawn in the final layout (a skeleton
    where each stat, row and chart will land), never a spinner in a void.
-   Shimmer honours prefers-reduced-motion.
+   The shimmer highlight reads var(--skeleton-hi) so it tracks the theme
+   from a single rule. Shimmer honours prefers-reduced-motion.
    --------------------------------------------------------------------- */
 @keyframes report-skeleton-shimmer {
   0%   { background-position: -200px 0; }
@@ -114,7 +129,7 @@
   background: var(--surface-2);
   background-image: linear-gradient(90deg,
     var(--surface-2) 0px,
-    #e9edf2 40px,
+    var(--skeleton-hi) 40px,
     var(--surface-2) 80px);
   background-size: 200px 100%;
   background-repeat: no-repeat;
@@ -183,12 +198,10 @@
   --info:          #78aef0;
   --info-soft:     #16273c;
 
+  --skeleton-hi:   #24303f;
+
   --shadow:    0 1px 2px rgba(0, 0, 0, .40), 0 1px 3px rgba(0, 0, 0, .30);
   --shadow-lg: 0 8px 28px rgba(0, 0, 0, .55);
-}
-[data-theme="dark"] .skeleton {
-  background-image: linear-gradient(90deg,
-    var(--surface-2) 0px, #24303f 40px, var(--surface-2) 80px);
 }
 [data-theme="dark"] .segmented button:hover:not([aria-pressed="true"]):not(:disabled) {
   background: rgba(255, 255, 255, .05);
