@@ -1,0 +1,187 @@
+/* =====================================================================
+   Reports section — design tokens & component styles (S-3 · REP-3)
+   ---------------------------------------------------------------------
+   ADDITIVE to frontend/src/styles.css. Every value here reads an
+   existing token from that file's :root — no new literal colour, size,
+   radius, shadow or type value is introduced. This is the reconciled
+   design direction for the reporting section: the quarterly/annual
+   toggle, the on-screen chart (frame + legend), all chart states
+   (loading skeleton / empty / populated / error) and the export
+   buttons' busy state.
+
+   The frontend build ticket merges these blocks into styles.css when it
+   builds the Reports page; they live here as the reviewable design
+   reference, independent of the build. Confirmed against the Demo3
+   token set in frontend/src/styles.css.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Segmented control — the report-type toggle (Quarterly | Annual)
+      and the quarter sub-toggle (Q1..Q4). Nothing like it exists today;
+      it is the one net-new control the reporting section needs.
+      Built entirely from --surface-2 / --surface / --border /
+      --border-strong / --accent / --accent-soft / --shadow.
+   --------------------------------------------------------------------- */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+}
+.segmented button {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 180ms ease-out, color 180ms ease-out;
+}
+.segmented button:hover:not([aria-pressed="true"]):not(:disabled) {
+  color: var(--text);
+  background: rgba(19, 26, 36, .04);
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+.segmented button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.segmented button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------------
+   2. Chart frame + legend — the on-screen graph (inline SVG, no chart
+      library per the reporting approach). The chart uses the semantic
+      palette so on-screen bars match the server-baked chart in exports:
+        approved -> var(--ok)   pending -> var(--warn)   rejected -> var(--danger)
+      Populated state is the SVG itself; empty and error states below.
+   --------------------------------------------------------------------- */
+.chart-frame { width: 100%; padding: 4px 4px 0; }
+.chart-frame svg { width: 100%; height: auto; display: block; }
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  padding: 12px 4px 2px; font-size: 12px; color: var(--text-muted);
+}
+.chart-legend .swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: 6px; vertical-align: -1px;
+}
+
+/* Chart empty state — reuses the system's .empty vocabulary, sized to
+   sit inside a chart card without collapsing its height. */
+.chart-empty {
+  min-height: 200px;
+  display: grid; place-items: center;
+  text-align: center; color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------
+   3. Skeleton — the LOADING state, drawn in the final layout (a
+      skeleton where each stat, table row and chart will land), never a
+      spinner in a void. Shimmer honours prefers-reduced-motion.
+   --------------------------------------------------------------------- */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.skeleton {
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  background-image: linear-gradient(90deg,
+    var(--surface-2) 0px,
+    #e9edf2 40px,
+    var(--surface-2) 80px);
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1200ms ease-in-out infinite;
+}
+.skeleton-line  { height: 12px; margin: 6px 0; }
+.skeleton-value { height: 26px; width: 60%; margin-top: 6px; }
+.skeleton-chart { height: 220px; margin: 4px 0; }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ---------------------------------------------------------------------
+   4. Export-busy button — the state while an Excel/PDF export is being
+      prepared. The primary (Export Excel) and secondary (Export PDF)
+      buttons are the existing .btn / .btn-secondary; this only adds the
+      inline spinner and the busy lock.
+   --------------------------------------------------------------------- */
+.spinner {
+  width: 13px; height: 13px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+  flex-shrink: 0;
+}
+.btn.is-busy { pointer-events: none; opacity: .8; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 0s; }
+}
+
+/* Utility spacings, on the system's 4px rhythm */
+.mt-16 { margin-top: 16px; }
+.mt-8  { margin-top: 8px; }
+
+/* =====================================================================
+   5. Dark theme token values — DESIGNED, not inverted.
+   ---------------------------------------------------------------------
+   The app ships light-only today (styles.css has no theme toggle).
+   These values are provided so the design system can adopt a theme
+   WITHOUT editing a single component: depth comes from lighter surfaces
+   rather than heavier shadows, and every hue is re-checked for >= 4.5:1
+   body-text contrast. Activated by data-theme="dark" on <html>.
+   Adopting dark mode is a separate, system-wide decision — this block
+   is the ready specification for it, not a switch this ticket flips.
+   The reporting section ships in the existing light theme.
+   ===================================================================== */
+[data-theme="dark"] {
+  --bg:            #0d131c;
+  --surface:       #141d29;
+  --surface-2:     #1c2836;
+  --border:        #2a3948;
+  --border-strong: #3a4c5e;
+
+  --text:          #e7ecf3;
+  --text-muted:    #a3b0c0;
+  --text-faint:    #6f7d8f;
+
+  --accent:        #5b9bff;
+  --accent-hover:  #78adff;
+  --accent-soft:   #16233b;
+
+  --ok:            #4ecf9e;
+  --ok-soft:       #122a24;
+  --warn:          #e3ab54;
+  --warn-soft:     #2c2312;
+  --danger:        #f08a8a;
+  --danger-soft:   #2e1717;
+  --neutral:       #9aa6b4;
+  --neutral-soft:  #212c39;
+  --info:          #78aef0;
+  --info-soft:     #16273c;
+
+  --shadow:    0 1px 2px rgba(0, 0, 0, .40), 0 1px 3px rgba(0, 0, 0, .30);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, .55);
+}
+[data-theme="dark"] .skeleton {
+  background-image: linear-gradient(90deg,
+    var(--surface-2) 0px, #24303f 40px, var(--surface-2) 80px);
+}
+[data-theme="dark"] .segmented button:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: rgba(255, 255, 255, .05);
+}
