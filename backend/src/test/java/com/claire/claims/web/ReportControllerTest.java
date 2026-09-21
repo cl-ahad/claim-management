@@ -114,7 +114,7 @@ class ReportControllerTest {
     }
 
     @Test
-    void nonNumericYterMapsToProblemJson() throws Exception {
+    void nonNumericYearMapsToProblemJson() throws Exception {
         // A non-numeric year fails type conversion before the controller body runs.
         mvc.perform(get("/api/reports/quarterly").param("year", "notayear"))
                 .andExpect(status().is4xxClientError());
