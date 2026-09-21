@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, ApiError, tokenStore } from '../api/client';
-import type { ReportPeriodType, ReportResponse } from '../api/types';
+import type { ReportResponse } from '../api/types';
 import { PageHeader } from '../components/Layout';
 import { Card, Money } from '../components/Common';
 import {
@@ -18,8 +19,6 @@ import {
 const CURRENT_YEAR = new Date().getUTCFullYear();
 const YEAR_CHOICES = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 const SPAN_CHOICES = [3, 5, 10];
-
-type Period = ReportPeriodType extends 'QUARTERLY' | 'ANNUAL' ? 'quarterly' | 'annual' : never;
 
 function parsePeriod(raw: string | null): 'quarterly' | 'annual' {
   return raw === 'annual' ? 'annual' : 'quarterly';
@@ -293,7 +292,7 @@ function collectionNote(report: ReportResponse): string {
 }
 
 function Stat({ label, value, note }:
-  { label: string; value: React.ReactNode; note?: string }) {
+  { label: string; value: ReactNode; note?: string }) {
   return (
     <div className="card stat">
       <div className="stat-label">{label}</div>
