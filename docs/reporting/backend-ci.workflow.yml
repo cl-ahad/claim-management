@@ -1,0 +1,40 @@
+# ACTIVATION: a maintainer with `workflow` OAuth scope copies this file to
+# `.github/workflows/backend-ci.yml` on Demo3. The Claire connected token is
+# rejected with HTTP 404 on ANY path under .github/workflows/ (even a .txt),
+# i.e. it lacks the GitHub `workflow` OAuth scope, so this cannot be landed
+# from here. Once activated it runs `mvn -B test` on Temurin JDK 21 for every
+# push and PR into Demo3 — the executed, recorded gate for the reporting suite
+# (ReportingServiceTest, ReportControllerTest, ReportExporterTest across
+# PRs #13/#16/#18). The reporting tests are Mockito/@WebMvcTest slices and
+# need no database.
+
+name: Backend CI
+
+on:
+  push:
+    branches: [Demo3]
+  pull_request:
+    branches: [Demo3]
+
+jobs:
+  test:
+    name: Build & test (JDK 21 + Maven)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run the test suite
+        run: mvn -B test
