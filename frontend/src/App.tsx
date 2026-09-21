@@ -10,6 +10,7 @@ import PatientsPage from './pages/PatientsPage';
 import PatientDetailPage from './pages/PatientDetailPage';
 import PayersPage from './pages/PayersPage';
 import ProvidersPage from './pages/ProvidersPage';
+import ReportsPage from './pages/ReportsPage';
 import RoadmapPage from './pages/RoadmapPage';
 import type { ReactElement } from 'react';
 
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/patients/:id" element={<PatientDetailPage />} />
         <Route path="/payers" element={<PayersPage />} />
         <Route path="/providers" element={<ProvidersPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

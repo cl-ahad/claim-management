@@ -225,3 +225,41 @@ export interface StatusTransitionMap {
   descriptions: Record<string, string>;
   terminal: string[];
 }
+
+// =====================================================================
+// Reporting (S-5) — mirrors the REP-4 aggregation contract (PR #13):
+//   GET /api/reports/quarterly?year=YYYY
+//   GET /api/reports/annual?year=YYYY&years=N
+// =====================================================================
+
+export type ReportPeriodType = 'QUARTERLY' | 'ANNUAL';
+
+/** One status row within a period's breakdown. Every ClaimStatus appears, including empty ones. */
+export interface ReportStatusCount {
+  status: ClaimStatus;
+  description: string;
+  count: number;
+  totalCharged: number;
+  totalPaid: number;
+}
+
+/** One period in a report: a quarter (QUARTERLY) or a whole year (ANNUAL). */
+export interface ReportPeriod {
+  label: string;
+  from: string;
+  to: string;
+  claimsCount: number;
+  totalCharged: number;
+  totalPaid: number;
+  statusBreakdown: ReportStatusCount[];
+}
+
+/** A full report: its type, anchor year, ordered periods, and totals across them. */
+export interface ReportResponse {
+  type: ReportPeriodType;
+  year: number;
+  periods: ReportPeriod[];
+  totalClaims: number;
+  totalCharged: number;
+  totalPaid: number;
+}
