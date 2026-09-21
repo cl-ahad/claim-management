@@ -123,13 +123,13 @@ export default function ReportsPage() {
 
   const exportActions = (
     <>
-      <button className={`btn${exporting === 'xlsx' ? ' is-busy' : ''}`}
+      <button className={`btn export-actions${exporting === 'xlsx' ? ' is-busy' : ''}`}
               disabled={loading || isEmpty || exporting !== null}
               onClick={() => runExport('xlsx')}>
         {exporting === 'xlsx' ? <span className="btn-spinner" aria-hidden /> : <DownloadIcon />}
         Export Excel
       </button>
-      <button className={`btn btn-secondary${exporting === 'pdf' ? ' is-busy' : ''}`}
+      <button className={`btn btn-secondary export-actions${exporting === 'pdf' ? ' is-busy' : ''}`}
               disabled={loading || isEmpty || exporting !== null}
               onClick={() => runExport('pdf')}>
         {exporting === 'pdf' ? <span className="btn-spinner" aria-hidden /> : <DownloadIcon />}
@@ -291,57 +291,4 @@ function collectionNote(report: ReportResponse): string {
   return `${rate.toFixed(1)}% of charges`;
 }
 
-function Stat({ label, value, note }:
-  { label: string; value: ReactNode; note?: string }) {
-  return (
-    <div className="card stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {note && <div className="stat-note">{note}</div>}
-    </div>
-  );
-}
-
-// Loading state: the final layout drawn as skeletons — four stat cards,
-// two half-width charts and a full-width chart — never a spinner in a void.
-function ReportSkeleton() {
-  return (
-    <div className="card-body" aria-busy="true" aria-label="Loading report">
-      <div className="grid grid-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="card stat">
-            <div className="skeleton skeleton-line" style={{ width: '50%' }} />
-            <div className="skeleton skeleton-value" />
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-2 mt-16">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="card">
-            <div className="card-head"><div className="skeleton skeleton-line" style={{ width: '40%' }} /></div>
-            <div className="card-body"><div className="skeleton skeleton-chart" /></div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-16">
-        <div className="card">
-          <div className="card-head"><div className="skeleton skeleton-line" style={{ width: '30%' }} /></div>
-          <div className="card-body"><div className="skeleton skeleton-chart" /></div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// lucide "download" glyph, inline so the page adds no icon dependency and
-// the stroke follows currentColor like the rest of the button label.
-function DownloadIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
+function Stat
