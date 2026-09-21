@@ -163,6 +163,14 @@
   .btn-spinner { animation-duration: 0s; }
 }
 
+/* Export buttons — the shared .btn is ~35.5px tall (8px padding +
+   13px/1.5 line-height), below the >=40px touch target the design-
+   review checklist requires. Enforce min-height here, scoped to the
+   reporting export buttons only (the .export-actions hook), so the
+   shared .btn / .btn-sm used elsewhere in the app (pagination, sign-out)
+   keep their own density. */
+.btn.export-actions { min-height: 40px; }
+
 /* =====================================================================
    Dark theme token values — DESIGNED, not inverted (S-3 spec).
    ---------------------------------------------------------------------
