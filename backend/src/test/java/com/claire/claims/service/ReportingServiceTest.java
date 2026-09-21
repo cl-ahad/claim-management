@@ -45,6 +45,17 @@ class ReportingServiceTest {
         return new Object[]{status, count, new BigDecimal(charged), new BigDecimal(paid)};
     }
 
+    private static StatusCount statusOf(PeriodReport period, ClaimStatus status) {
+        return period.statusBreakdown().stream()
+                .filter(s -> s.status() == status)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("status " + status + " missing from " + period.label()));
+    }
+
+    private static OffsetDateTime startOfYear(int year) {
+        return LocalDate.of(year, 1, 1).atStartOfDay().atOffset(ZoneOffset.UTC);
+    }
+
     @Test
     void quarterly_returnsFourPeriodsWithHalfOpenCalendarWindows() {
         when(claims.reportRowsByStatus(any(), any())).thenReturn(List.of());
@@ -144,6 +155,56 @@ class ReportingServiceTest {
         assertThat(report.periods().get(2).to()).isEqualTo(LocalDate.of(2026, 1, 1));
     }
 
+    /**
+     * The annual report must give EACH year its own per-status breakdown, not a
+     * shared or carried-over one. Stubs distinct rows per year window and asserts
+     * every year's figures independently, including an empty year that still
+     * lists every status at zero, and that the report totals sum across years.
+     */
+    @Test
+    void annual_eachYearCarriesItsOwnPerStatusBreakdown() {
+        // 2022 window: empty. 2023: 2 PAID + 1 DENIED. 2024: 3 REJECTED.
+        when(claims.reportRowsByStatus(startOfYear(2022), startOfYear(2023)))
+                .thenReturn(List.of());
+        when(claims.reportRowsByStatus(startOfYear(2023), startOfYear(2024)))
+                .thenReturn(List.of(
+                        row(ClaimStatus.PAID, 2, "500.00", "500.00"),
+                        row(ClaimStatus.DENIED, 1, "120.00", "0.00")));
+        when(claims.reportRowsByStatus(startOfYear(2024), startOfYear(2025)))
+                .thenReturn(List.of(
+                        row(ClaimStatus.REJECTED, 3, "300.00", "0.00")));
+
+        ReportResponse report = service.annual(2024, 3);
+        assertThat(report.periods()).extracting(PeriodReport::label)
+                .containsExactly("2022", "2023", "2024");
+
+        PeriodReport y2022 = report.periods().get(0);
+        PeriodReport y2023 = report.periods().get(1);
+        PeriodReport y2024 = report.periods().get(2);
+
+        // 2022 — empty, but every status is still present at zero.
+        assertThat(y2022.claimsCount()).isZero();
+        assertThat(y2022.statusBreakdown()).hasSize(ClaimStatus.values().length);
+        assertThat(statusOf(y2022, ClaimStatus.PAID).count()).isZero();
+
+        // 2023 — its own PAID and DENIED figures; other statuses zero.
+        assertThat(y2023.claimsCount()).isEqualTo(3L);
+        assertThat(statusOf(y2023, ClaimStatus.PAID).count()).isEqualTo(2L);
+        assertThat(statusOf(y2023, ClaimStatus.PAID).totalCharged()).isEqualByComparingTo("500.00");
+        assertThat(statusOf(y2023, ClaimStatus.DENIED).count()).isEqualTo(1L);
+        assertThat(statusOf(y2023, ClaimStatus.REJECTED).count()).isZero();
+
+        // 2024 — only REJECTED; the 2023 figures are NOT carried over.
+        assertThat(y2024.claimsCount()).isEqualTo(3L);
+        assertThat(statusOf(y2024, ClaimStatus.REJECTED).count()).isEqualTo(3L);
+        assertThat(statusOf(y2024, ClaimStatus.PAID).count()).isZero();
+
+        // Report totals sum every year.
+        assertThat(report.totalClaims()).isEqualTo(6L);
+        assertThat(report.totalCharged()).isEqualByComparingTo("920.00");
+        assertThat(report.totalPaid()).isEqualByComparingTo("500.00");
+    }
+
     @Test
     void rejectsYearBeforeTheFloor() {
         assertThatThrownBy(() -> service.quarterly(1999))
@@ -162,6 +223,13 @@ class ReportingServiceTest {
     @Test
     void rejectsNonPositiveAnnualSpan() {
         assertThatThrownBy(() -> service.annual(2025, 0))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("years must be between");
+    }
+
+    @Test
+    void rejectsAnnualSpanAboveTheMaximum() {
+        assertThatThrownBy(() -> service.annual(2025, 21))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("years must be between");
     }
