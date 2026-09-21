@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +43,24 @@ public interface ClaimRepository extends JpaRepository<Claim, Long>,
            GROUP BY c.status
            """)
     List<Object[]> summaryByStatus();
+
+    /**
+     * Windowed clone of {@link #summaryByStatus()} for reporting: the same
+     * per-status count and money totals, but restricted to claims created in a
+     * half-open [from, to) window. Anchoring on createdAt (NOT NULL, immutable)
+     * rather than submittedAt (nullable) keeps unsubmitted claims in the report,
+     * and a bounded predicate is portable across the H2 test DB and Postgres -
+     * no EXTRACT(QUARTER) pushed into JPQL.
+     * Returns rows of [status, count, totalCharge, paidAmount].
+     */
+    @Query("""
+           SELECT c.status, COUNT(c), COALESCE(SUM(c.totalCharge), 0), COALESCE(SUM(c.paidAmount), 0)
+           FROM Claim c
+           WHERE c.createdAt >= :from AND c.createdAt < :to
+           GROUP BY c.status
+           """)
+    List<Object[]> reportRowsByStatus(@Param("from") OffsetDateTime from,
+                                      @Param("to") OffsetDateTime to);
 
     @Query("SELECT COALESCE(SUM(c.totalCharge - c.paidAmount), 0) FROM Claim c WHERE c.status NOT IN :closed")
     BigDecimal outstandingReceivable(@Param("closed") List<ClaimStatus> closed);
