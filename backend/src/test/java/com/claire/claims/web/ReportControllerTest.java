@@ -5,12 +5,14 @@ import com.claire.claims.common.GlobalExceptionHandler;
 import com.claire.claims.dto.ReportDtos.PeriodReport;
 import com.claire.claims.dto.ReportDtos.PeriodType;
 import com.claire.claims.dto.ReportDtos.ReportResponse;
+import com.claire.claims.service.ReportExporter;
 import com.claire.claims.service.ReportingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,6 +44,9 @@ class ReportControllerTest {
 
     @MockitoBean
     ReportingService reports;
+
+    @MockitoBean
+    ReportExporter exporter;
 
     private static ReportResponse sampleQuarterly(int year) {
         PeriodReport q1 = new PeriodReport(
@@ -77,8 +82,7 @@ class ReportControllerTest {
 
     @Test
     void annual_passesTheYearAndSpanThrough() throws Exception {
-        int currentYear = Year.now(ZoneOffset.UTC).getValue();
-        ReportResponse resp = new ReportResponse(PeriodType.ANNUAL, currentYear, List.of(),
+        ReportResponse resp = new ReportResponse(PeriodType.ANNUAL, 2024, List.of(),
                 0, BigDecimal.ZERO, BigDecimal.ZERO);
         when(reports.annual(2024, 3)).thenReturn(resp);
 
@@ -118,5 +122,67 @@ class ReportControllerTest {
         // A non-numeric year fails type conversion before the controller body runs.
         mvc.perform(get("/api/reports/quarterly").param("year", "notayear"))
                 .andExpect(status().is4xxClientError());
+    }
+
+    // =====================================================================
+    // Exports
+    // =====================================================================
+
+    @Test
+    void quarterlyExcel_streamsWorkbookWithAttachmentFilename() throws Exception {
+        when(reports.quarterly(2025)).thenReturn(sampleQuarterly(2025));
+        when(exporter.toExcel(org.mockito.ArgumentMatchers.any())).thenReturn(new byte[]{1, 2, 3});
+
+        mvc.perform(get("/api/reports/quarterly/export.xlsx").param("year", "2025"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("claims-quarterly-2025.xlsx")));
+
+        verify(reports).quarterly(2025);
+        verify(exporter).toExcel(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void quarterlyPdf_streamsPdfWithAttachmentFilename() throws Exception {
+        when(reports.quarterly(2025)).thenReturn(sampleQuarterly(2025));
+        when(exporter.toPdf(org.mockito.ArgumentMatchers.any())).thenReturn(new byte[]{'%', 'P', 'D', 'F'});
+
+        mvc.perform(get("/api/reports/quarterly/export.pdf").param("year", "2025"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("claims-quarterly-2025.pdf")));
+    }
+
+    @Test
+    void annualExcel_passesYearAndSpanAndNamesFile() throws Exception {
+        ReportResponse resp = new ReportResponse(PeriodType.ANNUAL, 2024, List.of(),
+                0, BigDecimal.ZERO, BigDecimal.ZERO);
+        when(reports.annual(2024, 3)).thenReturn(resp);
+        when(exporter.toExcel(org.mockito.ArgumentMatchers.any())).thenReturn(new byte[]{1});
+
+        mvc.perform(get("/api/reports/annual/export.xlsx").param("year", "2024").param("years", "3"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("claims-annual-2024.xlsx")));
+
+        verify(reports).annual(2024, 3);
+    }
+
+    @Test
+    void annualPdf_defaultsSpanToFive() throws Exception {
+        int currentYear = Year.now(ZoneOffset.UTC).getValue();
+        ReportResponse resp = new ReportResponse(PeriodType.ANNUAL, currentYear, List.of(),
+                0, BigDecimal.ZERO, BigDecimal.ZERO);
+        when(reports.annual(eq(currentYear), anyInt())).thenReturn(resp);
+        when(exporter.toPdf(org.mockito.ArgumentMatchers.any())).thenReturn(new byte[]{'%', 'P', 'D', 'F'});
+
+        mvc.perform(get("/api/reports/annual/export.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"));
+
+        verify(reports).annual(currentYear, 5);
     }
 }
